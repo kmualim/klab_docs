@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import copy
 import scipy
-import _pickle as pickle
+import cPickle as pickle
 import dfim.util
 
 import deeplift
