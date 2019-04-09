@@ -464,12 +464,12 @@ def compute_importance(model, sequences, tasks,
     print('Calculating Importance Scores')
 
     importance_method = {
-        "deeplift": deeplift.blobs.NonlinearMxtsMode.DeepLIFT_GenomicsDefault,
-        "rescale_all_layers": deeplift.blobs.NonlinearMxtsMode.Rescale,
-        "revealcancel_all_layers": deeplift.blobs.NonlinearMxtsMode.RevealCancel,
-        "gradient_input": deeplift.blobs.NonlinearMxtsMode.Gradient,
-        "guided_backprop": deeplift.blobs.NonlinearMxtsMode.GuidedBackprop,
-        "deconv": deeplift.blobs.NonlinearMxtsMode.DeconvNet
+        "deeplift": deeplift.layers.core.NonlinearMxtsMode.DeepLIFT_GenomicsDefault,
+        "rescale_all_layers": deeplift.layers.core.NonlinearMxtsMode.Rescale,
+        "revealcancel_all_layers": deeplift.layers.core.NonlinearMxtsMode.RevealCancel,
+        "gradient_input": deeplift.layers.core.NonlinearMxtsMode.Gradient,
+        "guided_backprop": deeplift.layers.core.NonlinearMxtsMode.GuidedBackprop,
+        "deconv": deeplift.layers.core.NonlinearMxtsMode.DeconvNet
     }
 
     importance_model = kc.convert_sequential_model(model,
