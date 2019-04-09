@@ -12,7 +12,7 @@ import _pickle as pickle
 import dfim.util
 
 import deeplift
-from deeplift/conversion import kerasapi_conversion as kc
+from deeplift.conversion import kerasapi_conversion as kc
 
 BASES = ['A','C','G','T']
 DEFAULT_GC_FRACTION = 0.46
