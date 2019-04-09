@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import copy
 import scipy
-import cPickle as pickle
+import _pickle as pickle
 import dfim.util
 
 import deeplift
@@ -17,15 +17,15 @@ from deeplift.conversion import keras_conversion as kc
 BASES = ['A','C','G','T']
 DEFAULT_GC_FRACTION = 0.46
 
-def generate_mutants_and_key(sequences, mut_loc_dict, sequence_index=None, 
+def generate_mutants_and_key(sequences, mut_loc_dict, sequence_index=None,
                              mutants=BASES, per_base_map=False,
                              mutant_gc_fraction=DEFAULT_GC_FRACTION):
   """
   mut_loc_dict = {name: {'seq': 'mut_start': int, 'mut_end' int, 'resp_start': [], resp_end: []}}
-  sequence_index: used to preserve index used in mut_loc_dict 
+  sequence_index: used to preserve index used in mut_loc_dict
                   while allowing analysis only on correct ones, subset, etc.
   if per_base_map:
-      mutant key needs 
+      mutant key needs
   """
   if sequence_index is None:
       sequence_index = range(sequences.shape[0])
@@ -36,7 +36,7 @@ def generate_mutants_and_key(sequences, mut_loc_dict, sequence_index=None,
   ind = 0
 
   mut_sizes = [mut_loc_dict[name]['mut_end'] - mut_loc_dict[name]['mut_start']
-                      for name in mut_loc_dict.keys() 
+                      for name in mut_loc_dict.keys()
                       if mut_loc_dict[name]['seq'] in sequence_index]
 
   if per_base_map:
@@ -55,24 +55,24 @@ def generate_mutants_and_key(sequences, mut_loc_dict, sequence_index=None,
       key_columns = ['array_ind', 'label', 'seq',  'mut_key', 'mut_start',
                     'orig_letter', 'mut_letter', 'mut_end']
   else:
-      key_columns = ['array_ind', 'label', 'seq', 'mut_key', 
+      key_columns = ['array_ind', 'label', 'seq', 'mut_key',
                      'mut_start', 'mut_end']
 
-  mutated_seq_key = pd.DataFrame(columns=key_columns, 
+  mutated_seq_key = pd.DataFrame(columns=key_columns,
                                  index=range(total_index_size))
 
   for seq in sequence_index:
       # If there are two embedded motifs
-      seq_muts = [name for name in mut_loc_dict.keys() 
+      seq_muts = [name for name in mut_loc_dict.keys()
                        if mut_loc_dict[name]['seq'] == seq]
       if len(seq_muts) > 0:
 
           # Add original sequence to the list of sequences
           mutated_seq_list.append(sequences[seq])
-          orig_dict = {'array_ind': ind, 'seq': seq, 'label': 'original', 
+          orig_dict = {'array_ind': ind, 'seq': seq, 'label': 'original',
                        'mut_key': 'original', 'mut_start': -1, 'mut_end': -1}
           if per_base_map:
-              orig_dict['orig_letter'] = -1; orig_dict['mut_letter'] = -1; 
+              orig_dict['orig_letter'] = -1; orig_dict['mut_letter'] = -1;
 
           mutated_seq_key.iloc[ind,:] = orig_dict
           ind += 1
@@ -94,15 +94,15 @@ def generate_mutants_and_key(sequences, mut_loc_dict, sequence_index=None,
                       mutated_seq[mut_start, mut_index] = 1
                       mutated_seq_list.append(mutated_seq)
                       label = 'seq_{0}_{1}to{2}_at{3}'.format(
-                                      str(seq), orig_letter, 
+                                      str(seq), orig_letter,
                                       mut_letter, str(mut_start))
                       mutated_seq_key.iloc[ind, :]={
-                            'array_ind':ind, 
-                            'seq': seq, 
-                            'label': label, 
-                            'mut_key': m, 
+                            'array_ind':ind,
+                            'seq': seq,
+                            'label': label,
+                            'mut_key': m,
                             'mut_start': mut_start,
-                            'orig_letter': orig_letter, 
+                            'orig_letter': orig_letter,
                             'mut_letter': mut_letter,
                             'mut_end': mut_end}
                       ind += 1
@@ -124,15 +124,15 @@ def generate_mutants_and_key(sequences, mut_loc_dict, sequence_index=None,
                           mutated_seq[current_mut_start, mut_index] = 1
                           mutated_seq_list.append(mutated_seq)
                           label = 'seq_{0}_{1}to{2}_at{3}'.format(
-                                          str(seq), orig_letter, 
+                                          str(seq), orig_letter,
                                           mut_letter, str(current_mut_start))
                           mutated_seq_key.iloc[ind, :] = {
-                                'array_ind':ind, 
-                                'seq': seq, 
-                                'label': label, 
-                                'mut_key': m, 
+                                'array_ind':ind,
+                                'seq': seq,
+                                'label': label,
+                                'mut_key': m,
                                 'mut_start': current_mut_start,
-                                'orig_letter': orig_letter, 
+                                'orig_letter': orig_letter,
                                 'mut_letter': mut_letter,
                                 'mut_end': current_mut_end}
                           ind += 1
@@ -142,19 +142,19 @@ def generate_mutants_and_key(sequences, mut_loc_dict, sequence_index=None,
                   assert mut_end - mut_start > 1
                   mutated_seq = copy.deepcopy(sequences[seq])
                   if mutant_gc_fraction == 0:
-                      mutated_seq[mut_start:mut_end, :] = 0 
+                      mutated_seq[mut_start:mut_end, :] = 0
                   else:
                       assert mutant_gc_fraction < 1
-                      mutated_seq[mut_start:mut_end, 
+                      mutated_seq[mut_start:mut_end,
                                       [0,3]] = (1 - mutant_gc_fraction) / 2
-                      mutated_seq[mut_start:mut_end, 
+                      mutated_seq[mut_start:mut_end,
                                       [1,2]] = mutant_gc_fraction / 2
                   mutated_seq_list.append(mutated_seq)
                   label = '{0};seq_{1}_loc{2}-{3}'.format(
                               m, str(seq), str(mut_start), str(mut_end))
-                  mutated_seq_key.iloc[ind, :] = {'array_ind':ind, 'seq': seq, 
+                  mutated_seq_key.iloc[ind, :] = {'array_ind':ind, 'seq': seq,
                                                   'label': label,
-                                                  'mut_key': m, 
+                                                  'mut_key': m,
                                                   'mut_start': mut_start,
                                                   'mut_end': mut_end}
                   ind += 1
@@ -184,7 +184,7 @@ def add_individual_mutants(pair_mut_loc_dict, m,
     if mut_end - mut_start == 1:
 
       orig_letter = dfim.util.get_orig_letter(
-                              sequences[seq][mut_start, :])                
+                              sequences[seq][mut_start, :])
 
       # If specific mutant base applied, use that
       if 'mut_bases' in pair_mut_loc_dict[m]:
@@ -200,15 +200,15 @@ def add_individual_mutants(pair_mut_loc_dict, m,
         mutated_seq[mut_start, mut_index] = 1
         mutated_seq_list.append(mutated_seq)
         label = 'seq_{0}_{1}to{2}_at{3}'.format(
-                        str(seq), orig_letter, 
+                        str(seq), orig_letter,
                         mut_letter, str(mut_start))
         mutated_seq_key = mutated_seq_key.append({
-                                      'array_ind':ind, 
-                                      'seq': seq, 
-                                      'label': label, 
-                                      'mut_key': m, 
+                                      'array_ind':ind,
+                                      'seq': seq,
+                                      'label': label,
+                                      'mut_key': m,
                                       'mut_start': mut_start,
-                                      'orig_letter': orig_letter, 
+                                      'orig_letter': orig_letter,
                                       'mut_letter': mut_letter,
                                       'mut_end': mut_end,
                                       'mut_type': 'single'}, ignore_index=True)
@@ -219,29 +219,29 @@ def add_individual_mutants(pair_mut_loc_dict, m,
       assert mut_end - mut_start > 1
       mutated_seq = copy.deepcopy(sequences[seq])
       if mutant_gc_fraction == 0:
-          mutated_seq[mut_start:mut_end, :] = 0 
+          mutated_seq[mut_start:mut_end, :] = 0
       else:
           assert mutant_gc_fraction < 1
-          mutated_seq[mut_start:mut_end, 
+          mutated_seq[mut_start:mut_end,
                           [0,3]] = (1 - mutant_gc_fraction) / 2
-          mutated_seq[mut_start:mut_end, 
+          mutated_seq[mut_start:mut_end,
                           [1,2]] = mutant_gc_fraction / 2
       mutated_seq_list.append(mutated_seq)
       label = 'seq_{0}_mut_{1}-{2}'.format(
                   str(seq), str(mut_start), str(mut_end))
-      mutated_seq_key = mutated_seq_key.append({'array_ind':ind, 
-                                                'seq': seq, 
+      mutated_seq_key = mutated_seq_key.append({'array_ind':ind,
+                                                'seq': seq,
                                                 'label': label,
-                                                'mut_key': m, 
+                                                'mut_key': m,
                                                 'mut_start': mut_start,
-                                                'orig_letter': -1, 
+                                                'orig_letter': -1,
                                                 'mut_letter': -1,
                                                 'mut_end': mut_end,
-                                                'mut_type': 'single'}, 
+                                                'mut_type': 'single'},
                                                 ignore_index=True)
-      ind += 1 
+      ind += 1
 
-  return (mutated_seq_key, mutated_seq_list, ind) 
+  return (mutated_seq_key, mutated_seq_list, ind)
 
 def add_all_mutants(pair_mut_loc_dict, m,
                     sequences, seq, mutant_gc_fraction,
@@ -266,52 +266,52 @@ def add_all_mutants(pair_mut_loc_dict, m,
       mut_base = pair_mut_loc_dict[m]['mut_bases']
 
       orig_letter  = dfim.util.get_orig_letter(
-                              sequences[seq][mut_start, :])   
-      orig_letter_list.append(orig_letter)             
+                              sequences[seq][mut_start, :])
+      orig_letter_list.append(orig_letter)
 
       mut_index = dfim.util.get_letter_index(mut_base)
       mutated_seq[mut_start, :] = 0
       mutated_seq[mut_start, mut_index] = 1
 
-      label = label + '_mut_{0}to{1}_at{2}'.format(orig_letter, 
-                                                  mut_letter, 
+      label = label + '_mut_{0}to{1}_at{2}'.format(orig_letter,
+                                                  mut_letter,
                                                   str(mut_start))
     else:
 
       assert mut_end - mut_start > 1
       if mutant_gc_fraction == 0:
-          mutated_seq[mut_start:mut_end, :] = 0 
+          mutated_seq[mut_start:mut_end, :] = 0
       else:
           assert mutant_gc_fraction < 1
-          mutated_seq[mut_start:mut_end, 
+          mutated_seq[mut_start:mut_end,
                           [0,3]] = (1 - mutant_gc_fraction) / 2
-          mutated_seq[mut_start:mut_end, 
+          mutated_seq[mut_start:mut_end,
                           [1,2]] = mutant_gc_fraction / 2
       label = label + '_mut_{0}-{1}'.format(
                                 str(mut_start), str(mut_end))
-      orig_letter_list.append(-1) 
+      orig_letter_list.append(-1)
 
   mutated_seq_list.append(mutated_seq)
   mutated_seq_key = mutated_seq_key.append({
-                  'array_ind':ind, 
-                  'seq': seq, 
-                  'label': label, 
-                  'mut_key': m, 
-                  'mut_start': ','.join([str(el) for el in 
+                  'array_ind':ind,
+                  'seq': seq,
+                  'label': label,
+                  'mut_key': m,
+                  'mut_start': ','.join([str(el) for el in
                                           pair_mut_loc_dict[m]['mut_starts']]),
-                  'orig_letter': ','.join([str(el) for el in orig_letter_list]), 
+                  'orig_letter': ','.join([str(el) for el in orig_letter_list]),
                   'mut_letter': ','.join(pair_mut_loc_dict[m]['mut_letters']) \
                               if 'mut_letters' in pair_mut_loc_dict[m] else -1,
-                  'mut_end': ','.join([str(el) for el in 
+                  'mut_end': ','.join([str(el) for el in
                                             pair_mut_loc_dict[m]['mut_ends']]),
                   'mut_type': 'all'}, ignore_index=True)
   ind += 1
 
-  return (mutated_seq_key, mutated_seq_list, ind) 
+  return (mutated_seq_key, mutated_seq_list, ind)
 
 
-def generate_mutants_for_all_embedding_pairs(sequences, pair_mut_loc_dict, sequence_index=None, 
-                                             mutants=BASES, 
+def generate_mutants_for_all_embedding_pairs(sequences, pair_mut_loc_dict, sequence_index=None,
+                                             mutants=BASES,
                                              mutant_gc_fraction=DEFAULT_GC_FRACTION):
   if sequence_index is None:
       sequence_index = range(sequences.shape[0])
@@ -328,14 +328,14 @@ def generate_mutants_for_all_embedding_pairs(sequences, pair_mut_loc_dict, seque
 
   for seq in sequence_index:
 
-      seq_muts = [name for name in pair_mut_loc_dict.keys() 
+      seq_muts = [name for name in pair_mut_loc_dict.keys()
                        if pair_mut_loc_dict[name]['seq'] == seq]
 
       if len(seq_muts) > 0:
 
           # Add original sequence to the list of sequences
           mutated_seq_list.append(sequences[seq])
-          orig_dict = {'array_ind': ind, 'seq': seq, 'label': 'original', 
+          orig_dict = {'array_ind': ind, 'seq': seq, 'label': 'original',
                        'mut_key': 'original', 'mut_start': -1, 'mut_end': -1,
                        'orig_letter': -1, 'mut_letter': -1, 'mut_type': -1}
 
@@ -346,7 +346,7 @@ def generate_mutants_for_all_embedding_pairs(sequences, pair_mut_loc_dict, seque
 
             (mutated_seq_key, mutated_seq_list, ind) = \
               add_individual_mutants(pair_mut_loc_dict, m,
-                                     sequences, seq, 
+                                     sequences, seq,
                                      mutant_gc_fraction,
                                      mutated_seq_key,
                                      mutated_seq_list,
@@ -354,7 +354,7 @@ def generate_mutants_for_all_embedding_pairs(sequences, pair_mut_loc_dict, seque
 
             (mutated_seq_key, mutated_seq_list, ind) = \
               add_all_mutants(pair_mut_loc_dict, m,
-                              sequences, seq, 
+                              sequences, seq,
                               mutant_gc_fraction,
                               mutated_seq_key,
                               mutated_seq_list,
@@ -364,14 +364,14 @@ def generate_mutants_for_all_embedding_pairs(sequences, pair_mut_loc_dict, seque
 
   return (mutated_seq_array, mutated_seq_key)
 
-         
+
 def ism_from_mutants(mutated_seq_array, mutated_seq_key, sequences,
                      model, index_for_ism=None):
   """
   given a mutated seq key and mutated array
   adds the ism value to the mutated seq_key as 'prediction_diff' column
   """
-  # If not index provided, iterate over all 
+  # If not index provided, iterate over all
   if index_for_ism is None:
     index_for_ism = mutated_seq_key.index.tolist()
 
@@ -396,7 +396,7 @@ def ism_from_mutants(mutated_seq_array, mutated_seq_key, sequences,
   return return_seq_key
 
 
-def get_reference(sequences, importance_func, gc_fraction=0.5, 
+def get_reference(sequences, importance_func, gc_fraction=0.5,
                   shuffle=None, seed=1):
     """
     shuffle in ['random', 'dinuc']
@@ -411,7 +411,7 @@ def get_reference(sequences, importance_func, gc_fraction=0.5,
             score_computation_function = importance_func,
             shuffle_func = dfim.util.random_shuffle_fasta,
             seed = seed,
-            one_hot_func = lambda x: np.array([dfim.util.one_hot_encode(seq) 
+            one_hot_func = lambda x: np.array([dfim.util.one_hot_encode(seq)
                                                 for seq in x])
         )
         new_importance_func = deeplift_many_refs_func
@@ -421,7 +421,7 @@ def get_reference(sequences, importance_func, gc_fraction=0.5,
             score_computation_function = importance_func,
             shuffle_func = dfim.util.dinuc_shuffle,
             seed = seed,
-            one_hot_func = lambda x: np.array([dfim.util.one_hot_encode(seq) 
+            one_hot_func = lambda x: np.array([dfim.util.one_hot_encode(seq)
                                                 for seq in x])
         )
         new_importance_func = deeplift_many_refs_func
@@ -479,8 +479,8 @@ def compute_importance(model, sequences, tasks,
                                 find_scores_layer_idx=find_scores_layer_idx,
                                 target_layer_idx=target_layer_idx)
 
-    (reference, new_importance_func) = get_reference(sequences, importance_func, 
-                                                     gc_fraction=reference_gc, 
+    (reference, new_importance_func) = get_reference(sequences, importance_func,
+                                                     gc_fraction=reference_gc,
                                                      shuffle=reference_shuffle_type,
                                                      seed=seed)
 
@@ -506,8 +506,8 @@ def compute_importance(model, sequences, tasks,
     return importance_score_dict
 
 
-def compute_delta_profiles(score_dict, mutated_seq_key, 
-                           mut_loc_dict, tasks, sequence_index, 
+def compute_delta_profiles(score_dict, mutated_seq_key,
+                           mut_loc_dict, tasks, sequence_index,
                            task_dict=None,
                            mutated_seq_preds=None,
                            capture_seqs_max_thresh=None):
@@ -521,13 +521,13 @@ def compute_delta_profiles(score_dict, mutated_seq_key,
             delta_dict[task][seq] = {}
             # Get importance scores of original sequence
             orig_ind = mutated_seq_key[mutated_seq_key.seq == seq].loc[
-                                       mutated_seq_key.label == 'original', 
+                                       mutated_seq_key.label == 'original',
                                        'array_ind'].tolist()[0]
             # Get all mutants of that sequence
             seq_mut_indices = mutated_seq_key[mutated_seq_key.seq == seq].loc[
                                   mutated_seq_key.label != 'original', :].index.tolist()
             # Iterate through mutants
-            for mut_i in seq_mut_indices:  
+            for mut_i in seq_mut_indices:
                 m = mutated_seq_key.loc[mut_i, 'mut_key']
                 m_label = mutated_seq_key.loc[mut_i, 'label']
                 delta_dict[task][seq][m_label] = {}
@@ -557,7 +557,7 @@ def compute_delta_profiles(score_dict, mutated_seq_key,
                                      mutated_seq_preds[mut_ind])[task_num]
                     else:
                         pred_diff = None
-                    r_key = 'resp_{0}_{1}to{2}'.format(resp_names[r], 
+                    r_key = 'resp_{0}_{1}to{2}'.format(resp_names[r],
                                     str(resp_starts[r]), str(resp_ends[r]))
                     ### Combine code below
                     if capture_seqs_max_thresh is None:
@@ -573,7 +573,7 @@ def compute_delta_profiles(score_dict, mutated_seq_key,
                              'resp_end': resp_ends[r],
                              'mut_key': m,
                              'mut_name': mut_name,
-                             }                        
+                             }
                     elif capture_seqs_max_thresh is not None and \
                             abs(delta_profile).max() > capture_seqs_max_thresh:
                         print('Max score exceeded threshold, adding sequence')
@@ -596,7 +596,7 @@ def compute_delta_profiles(score_dict, mutated_seq_key,
     return delta_dict
 
 
-def dfim_per_element(delta_dict, task, seq, all_mut_pos, 
+def dfim_per_element(delta_dict, task, seq, all_mut_pos,
                      all_resp_pos, diagonal_value,
                      operations, operation_axes,
                      absolute_value,
@@ -626,7 +626,7 @@ def dfim_per_element(delta_dict, task, seq, all_mut_pos,
                                               i_score)
             # Combine into a map
             dfim_df.loc[delta_dict[task][seq][m][r]['mut_start'],
-                        delta_dict[task][seq][m][r]['resp_start']] = i_score.tolist() 
+                        delta_dict[task][seq][m][r]['resp_start']] = i_score.tolist()
 
     if return_array:
 
@@ -642,10 +642,10 @@ def dfim_per_base(dfim_key, resp_size, diagonal_value,
 
     """
     For motifs
-        - returns Pandas data frame with element and then per base response  
+        - returns Pandas data frame with element and then per base response
     For base-pair
         - returns 5D numpy array (mut_size, orig_letter, mut_letter, resp_size, resp_letter)
-    Need every response to be the same length 
+    Need every response to be the same length
     Currently don't use operations
     """
 
@@ -694,7 +694,7 @@ def dfim_element_by_base(delta_dict, task, seq, diagonal_value,
 
     """
     TODO(pgreenside): FIX
-    For every element 
+    For every element
     """
 
     dfim_seq_dict = {}
@@ -761,37 +761,37 @@ def compute_dfim(delta_dict, sequence_index, tasks,
                 dfim_dict[task][seq] = {}
 
                 mut_keys = mutated_seq_key[mutated_seq_key.seq == seq].loc[
-                                           mutated_seq_key.label != 'original', 
+                                           mutated_seq_key.label != 'original',
                                            'mut_key'].unique().tolist()
 
                 for mkey in mut_keys:
 
-                    all_mut_index = mutated_seq_key.loc[mutated_seq_key.mut_key == mkey, 
+                    all_mut_index = mutated_seq_key.loc[mutated_seq_key.mut_key == mkey,
                                                          'label'].tolist()
 
                     resp_sizes = [delta_dict[task][seq][m][r]['resp_end'
                                      ] - delta_dict[task][seq][m][r]['resp_start']
                                      for m in delta_dict[task][seq].keys()
                                      for r in delta_dict[task][seq][m].keys()]
-     
+
                     if len(np.unique(resp_sizes)) == 1:
 
                         # print('Detected response elements of same size %s, making DFIM'%resp_sizes[0])
 
                         dfim_array = dfim_per_base(
-                            dfim_key=mutated_seq_key[mutated_seq_key.mut_key == mkey], 
-                            resp_size=np.unique(resp_sizes)[0], 
+                            dfim_key=mutated_seq_key[mutated_seq_key.mut_key == mkey],
+                            resp_size=np.unique(resp_sizes)[0],
                             diagonal_value=diagonal_value,
                             delta_dict=delta_dict, task=task,
                             seq=seq, absolute_value=absolute_value,
-                            operations=operations, 
+                            operations=operations,
                             operation_axes=operation_axes)
 
                         dfim_dict[task][seq][mkey] = dfim_array
 
                         ### Better is to pass [mutated_seq_key.loc[mutated_seq_key.mut_key == m]
                         ### Then make an array and iterate through each of those [mut_start, orig_letter, mut_letter]
- 
+
                     else:
 
                         raise ValueError(
@@ -806,17 +806,17 @@ def compute_dfim(delta_dict, sequence_index, tasks,
                                                for r in delta_dict[task][seq][m].keys()])
                 all_resp_pos = np.unique([delta_dict[task][seq][m][r]['resp_start'
                                              ] for m in delta_dict[task][seq].keys()
-                                               for r in delta_dict[task][seq][m].keys()])   
+                                               for r in delta_dict[task][seq][m].keys()])
 
 
                 if len(all_resp_pos) > 1:
 
-                    dfim_df = dfim_per_element(delta_dict=delta_dict, 
-                                               task=task, seq=seq, 
-                                               all_mut_pos=all_mut_pos, 
-                                               all_resp_pos=all_resp_pos, 
+                    dfim_df = dfim_per_element(delta_dict=delta_dict,
+                                               task=task, seq=seq,
+                                               all_mut_pos=all_mut_pos,
+                                               all_resp_pos=all_resp_pos,
                                                diagonal_value=diagonal_value,
-                                               operations=operations, 
+                                               operations=operations,
                                                operation_axes=operation_axes,
                                                absolute_value=absolute_value,
                                                return_array=False)
@@ -847,12 +847,12 @@ def compute_dfim(delta_dict, sequence_index, tasks,
                     dfim_dict[task][seq] = dfim_df
 
                 else:
- 
+
                     dfim_seq_dict =  dfim_element_by_base(
                                        diagonal_value=diagonal_value,
                                        delta_dict=delta_dict, task=task,
                                        seq=seq, absolute_value=absolute_value,
-                                       operations=operations, 
+                                       operations=operations,
                                        operation_axes=operation_axes)
 
                     dfim_dict[task][seq] = dfim_seq_dict
@@ -861,7 +861,7 @@ def compute_dfim(delta_dict, sequence_index, tasks,
 
 
 
-def capture_strong_interactions(dfim_dict, delta_dict, 
+def capture_strong_interactions(dfim_dict, delta_dict,
                                 score_thresh=0.01,
                                 top_pct=None,
                                 pickle_file=None):
